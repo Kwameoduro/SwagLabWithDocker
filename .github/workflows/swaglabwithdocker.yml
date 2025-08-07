@@ -1,0 +1,42 @@
+name: Run Selenium UI Tests with Docker and Notify Slack
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  selenium-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker build -t swag-labs-tests .
+
+      - name: Run tests inside container
+        run: docker run --rm swag-labs-tests
+
+      - name: Slack Notification (Success)
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          fields: job,commit,repo,message
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Slack Notification (Failure)
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          fields: job,commit,repo,message
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
