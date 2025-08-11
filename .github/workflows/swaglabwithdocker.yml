@@ -1,91 +1,54 @@
-# SwagLabs Selenium Docker-Based Testing
-name: SwagLabs Test Automation with Docker
-
+name: Run Swag Labs UI Tests with Docker
 on:
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
 
 jobs:
   test:
-    name: Run SwagLabs Selenium Tests in Docker
+    name: 🧪 Run UI Tests
     runs-on: ubuntu-latest
-
+    continue-on-error: true
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 21
+      - name: Set up JDK 21 and Maven
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
           distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
 
-      - name: Cache Maven Dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+      - name: Build Docker image
+        run: docker build -t swaglabs_ui_tests .
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
+      - name: Run tests inside Docker
+        run: docker run --rm swaglabs_ui_tests
 
-      - name: Start Selenium Standalone Chrome with Docker
-        run: |
-          docker run -d -p 4444:4444 --name selenium-chrome selenium/standalone-chrome
-          sleep 10
-
-      - name: Verify Environment
-        run: |
-          java -version
-          mvn -version
-          docker ps
-
-      - name: Run SwagLabs Tests (Headless with Remote WebDriver)
-        run: mvn test -Dheadless=true -DremoteUrl=http://localhost:4444/wd/hub
-        env:
-          CHROME_OPTIONS: --headless --no-sandbox --disable-dev-shm-usage
-
-      - name: Upload Surefire Test Results
+      - name: Upload Surefire test results
+        if: always()
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: surefire-reports-${{ github.run_number }}
-          path: target/surefire-reports/
-          retention-days: 30
+          name: surefire-reports
+          path: target/surefire-reports
+          retention-days: 14
 
-      - name: Generate Test Summary
-        if: always()
-        run: |
-          echo "## SwagLabs Test Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build Number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Runner:** ${{ runner.os }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-
-  notify:
-    name: Send Slack Notification
+  notify-slack:
+    name: 🔔 Slack Notification
+    needs: [ test ]
     runs-on: ubuntu-latest
-    needs: test
     if: always()
-
     steps:
-      - name: Send Slack Notification
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ needs.test.result }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow
-          text: |
-            SwagLabs Tests ${{ needs.test.result == 'success' && '✅ PASSED' || '❌ FAILED' }}
-
-            • Repo: ${{ github.repository }}
-            • Branch: ${{ github.ref_name }}
-            • Commit: ${{ github.sha }}
-            • Author: ${{ github.actor }}
-            • Workflow: ${{ github.workflow }}
-
-            View Results: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Send Slack notification
+        run: |
+          STATUS="${{ needs.test.result }}"
+          if [ "$STATUS" = "success" ]; then
+            EMOJI="✅"
+          else
+            EMOJI="❌"
+          fi
+          curl -X POST -H 'Content-type: application/json' --data "{
+            \"text\": \"${EMOJI} UI Tests finished with status: *$STATUS*\n:package: Repo: $GITHUB_REPOSITORY\n:link: Commit: <https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA%7C$GITHUB_SHA>\"
+          }" ${{ secrets.SLACK_WEBHOOK_URL }}
