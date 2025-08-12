@@ -15,4 +15,15 @@ It is fully Dockerized and integrated with **GitHub Actions** for Continuous Int
 
 ---
 
-##  Project Structure
+## 🛠️ Prerequisites
+Before running the tests locally, ensure you have:
+- **Java 17+**
+- **Maven 3+**
+- **Docker** installed and running
+- Internet connection (to access Swag Labs)
+
+---
+
+## Contributing
+Contributions are welcome!
+If you have suggestions or improvements, fork the repo, make your changes, and submit a pull request.
