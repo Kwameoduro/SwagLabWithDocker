@@ -6,7 +6,7 @@ It is fully Dockerized and integrated with **GitHub Actions** for Continuous Int
 ---
 
 ## Core Features
-- **Java + Selenium WebDriver** for UI test automation
+- **Java and Selenium WebDriver** for UI test automation
 - **JUnit 5** for test execution
 - **Page Object Model (POM)** for maintainable and scalable test structure
 - **Dockerized** test execution environment
@@ -15,4 +15,4 @@ It is fully Dockerized and integrated with **GitHub Actions** for Continuous Int
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
