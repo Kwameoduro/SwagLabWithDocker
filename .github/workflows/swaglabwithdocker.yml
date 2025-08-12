@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    name: 🧪 Run UI Tests
+    name: Run UI Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -35,7 +35,7 @@ jobs:
           retention-days: 14
 
   notify-slack:
-    name: 🔔 Slack Notification
+    name:  Slack Notification
     needs: [ test ]
     runs-on: ubuntu-latest
     if: always()
